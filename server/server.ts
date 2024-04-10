@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars -- Remove me */
 import 'dotenv/config';
-import pg from 'pg';
+import pg, { Client } from 'pg';
 import express from 'express';
 import { ClientError, errorMiddleware } from './lib/index.js';
 
@@ -12,6 +12,7 @@ const db = new pg.Pool({
 });
 
 const app = express();
+app.use(express.json());
 
 app.get('/api/entries', async (req, res, next) => {
   try {
@@ -48,6 +49,67 @@ app.get('/api/entries/:entryId', async (req, res, next) => {
     next(err);
   }
 });
+
+app.post('/api/entries', async (req, res, next) => {
+  try {
+    const { title, notes, photoUrl } = req.body;
+    const sql = `
+    insert into "entries" ("title", "photoUrl", "notes")
+    values ($1, $2, $3)
+    returning *;
+  `;
+    if (!title) {
+      throw new ClientError(400, 'Please enter a title.');
+    }
+    if (!photoUrl) {
+      throw new ClientError(400, 'Please enter URL for the photo.');
+    }
+    if (!notes) {
+      throw new ClientError(400, 'Please enter some notes.');
+    }
+
+    const params = [title, photoUrl, notes]
+    const resp = await db.query(sql, params);
+    const [newEntry] = resp.rows;
+    res.status(201).json(newEntry);
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.put(`/api/entries/:entryId`, async (req, res, next)=>{
+  try {
+    const {entryId} = req.params;
+    const {title, photoUrl, notes} = req.body;
+    const sql = `
+      update "entries"
+      set "title" = $1,
+      "photoUrl" = $2,
+      "notes" = $3
+      where "entryId" = $4
+      returning *;
+    `
+     if (!title) {
+       throw new ClientError(400, 'Please enter a title.');
+     }
+     if (!photoUrl) {
+       throw new ClientError(400, 'Please enter URL for the photo.');
+     }
+     if (!notes) {
+       throw new ClientError(400, 'Please enter some notes.');
+     }
+     if (!Number.isInteger(+entryId)) {
+       throw new ClientError(400, 'Entry Id must be an integer.');
+     }
+    const params = [title, photoUrl, notes, entryId];
+    const resp = await db.query(sql, params)
+    const [updatedEntry] = resp.rows;
+    if(!updatedEntry) throw new ClientError (404, 'Entry does not exist.');
+    res.status(200).json(updatedEntry);
+  }catch(err){
+    next(err)
+  }
+})
 
 app.use(errorMiddleware);
 

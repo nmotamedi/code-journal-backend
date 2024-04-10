@@ -1,3 +1,5 @@
+import { json } from "react-router-dom";
+
 export type Entry = {
   entryId?: number;
   title: string;
@@ -25,24 +27,27 @@ export async function readEntry(entryId: number): Promise<Entry | undefined> {
 }
 
 export async function addEntry(entry: Entry): Promise<Entry> {
-  const data = readData();
-  const newEntry = {
-    ...entry,
-    entryId: data.nextEntryId++,
-  };
-  data.entries.unshift(newEntry);
-  writeData(data);
+  const options = {
+    method: 'POST',
+    body: JSON.stringify(entry),
+    headers: {'Content-Type': 'application/json'}
+  }
+  const resp = await fetch('/api/entries', options);
+  if(!resp.ok) throw new Error (`Fetch error with status ${resp.status}`)
+  const newEntry = await resp.json();
   return newEntry;
 }
 
 export async function updateEntry(entry: Entry): Promise<Entry> {
-  const data = readData();
-  const newEntries = data.entries.map((e) =>
-    e.entryId === entry.entryId ? entry : e
-  );
-  data.entries = newEntries;
-  writeData(data);
-  return entry;
+  const options = {
+    method: 'PUT',
+    body: JSON.stringify(entry),
+    headers: { 'Content-Type': 'application/json' },
+  };
+  const resp = await fetch(`/api/entries/${entry.entryId}`, options);
+  if (!resp.ok) throw new Error(`Fetch error with status ${resp.status}`);
+  const updatedEntry = await resp.json();
+  return updatedEntry;
 }
 
 export async function removeEntry(entryId: number): Promise<void> {
