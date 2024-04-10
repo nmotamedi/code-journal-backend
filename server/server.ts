@@ -68,7 +68,7 @@ app.post('/api/entries', async (req, res, next) => {
       throw new ClientError(400, 'Please enter some notes.');
     }
 
-    const params = [title, photoUrl, notes]
+    const params = [title, photoUrl, notes];
     const resp = await db.query(sql, params);
     const [newEntry] = resp.rows;
     res.status(201).json(newEntry);
@@ -77,10 +77,10 @@ app.post('/api/entries', async (req, res, next) => {
   }
 });
 
-app.put(`/api/entries/:entryId`, async (req, res, next)=>{
+app.put(`/api/entries/:entryId`, async (req, res, next) => {
   try {
-    const {entryId} = req.params;
-    const {title, photoUrl, notes} = req.body;
+    const { entryId } = req.params;
+    const { title, photoUrl, notes } = req.body;
     const sql = `
       update "entries"
       set "title" = $1,
@@ -88,28 +88,50 @@ app.put(`/api/entries/:entryId`, async (req, res, next)=>{
       "notes" = $3
       where "entryId" = $4
       returning *;
-    `
-     if (!title) {
-       throw new ClientError(400, 'Please enter a title.');
-     }
-     if (!photoUrl) {
-       throw new ClientError(400, 'Please enter URL for the photo.');
-     }
-     if (!notes) {
-       throw new ClientError(400, 'Please enter some notes.');
-     }
-     if (!Number.isInteger(+entryId)) {
-       throw new ClientError(400, 'Entry Id must be an integer.');
-     }
+    `;
+    if (!title) {
+      throw new ClientError(400, 'Please enter a title.');
+    }
+    if (!photoUrl) {
+      throw new ClientError(400, 'Please enter URL for the photo.');
+    }
+    if (!notes) {
+      throw new ClientError(400, 'Please enter some notes.');
+    }
+    if (!Number.isInteger(+entryId)) {
+      throw new ClientError(400, 'Entry Id must be an integer.');
+    }
     const params = [title, photoUrl, notes, entryId];
-    const resp = await db.query(sql, params)
+    const resp = await db.query(sql, params);
     const [updatedEntry] = resp.rows;
-    if(!updatedEntry) throw new ClientError (404, 'Entry does not exist.');
+    if (!updatedEntry) throw new ClientError(404, 'Entry does not exist.');
     res.status(200).json(updatedEntry);
-  }catch(err){
-    next(err)
+  } catch (err) {
+    next(err);
   }
-})
+});
+
+app.delete('/api/entries/:entryId', async (req, res, next) => {
+  try {
+    const { entryId } = req.params;
+    if (!Number.isInteger(+entryId)) {
+      throw new ClientError(400, 'Entry Id must be an integer.');
+    }
+    const sql = `
+    delete from "entries"
+      where "entryId" = $1
+      returning *;
+    `;
+    const params = [entryId];
+    const resp = await db.query(sql, params);
+    const [deletedEntry] = resp.rows;
+    if (!deletedEntry)
+      throw new ClientError(404, `Entry ${entryId} does not exist.`);
+    res.sendStatus(204);
+  } catch (err) {
+    next(err);
+  }
+});
 
 app.use(errorMiddleware);
 
