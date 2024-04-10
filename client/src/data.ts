@@ -10,33 +10,18 @@ type Data = {
   nextEntryId: number;
 };
 
-const dataKey = 'code-journal-data';
-
-function readData(): Data {
-  let data: Data;
-  const localData = localStorage.getItem(dataKey);
-  if (localData) {
-    data = JSON.parse(localData);
-  } else {
-    data = {
-      entries: [],
-      nextEntryId: 1,
-    };
-  }
-  return data;
-}
-
-function writeData(data: Data): void {
-  const dataJSON = JSON.stringify(data);
-  localStorage.setItem(dataKey, dataJSON);
-}
-
 export async function readEntries(): Promise<Entry[]> {
-  return readData().entries;
+  const resp = await fetch(`/api/entries`);
+  if (!resp.ok) throw new Error(`Fetch Error`);
+  const entriesList = await resp.json();
+  return entriesList;
 }
 
 export async function readEntry(entryId: number): Promise<Entry | undefined> {
-  return readData().entries.find((e) => e.entryId === entryId);
+  const resp = await fetch(`/api/entries/${entryId}`);
+  if (!resp.ok) throw new Error(`Fetch Error`);
+  const entry = await resp.json();
+  return entry;
 }
 
 export async function addEntry(entry: Entry): Promise<Entry> {
