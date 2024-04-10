@@ -2,7 +2,20 @@
 import 'dotenv/config';
 import pg, { Client } from 'pg';
 import express from 'express';
-import { ClientError, errorMiddleware } from './lib/index.js';
+import { ClientError, authMiddleware, errorMiddleware } from './lib/index.js';
+import argon2 from 'argon2';
+import jwt from 'jsonwebtoken';
+
+type User = {
+  userId: number;
+  username: string;
+  createdAt: Date;
+};
+
+type Auth = {
+  username: string;
+  password: string;
+};
 
 const db = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
@@ -11,10 +24,59 @@ const db = new pg.Pool({
   },
 });
 
+const hashKey = process.env.TOKEN_SECRET;
+if (!hashKey) throw new Error('TOKEN_SECRET not found in .env');
+
 const app = express();
 app.use(express.json());
 
-app.get('/api/entries', async (req, res, next) => {
+app.post('/api/auth/sign-up', async (req, res, next) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      throw new ClientError(400, 'username and password are required fields');
+    }
+    const hashedPassword = await argon2.hash(password);
+    const sql = `
+    insert into "users"("username", "hashedPassword")
+      values ($1, $2)
+      returning "username", "userId", "createdAt";
+    `;
+    const params = [username, hashedPassword];
+    const resp = await db.query<User>(sql, params);
+    const [row] = resp.rows;
+    res.status(201).json(row);
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post('/api/auth/sign-in', async (req, res, next) => {
+  try {
+    const { username, password } = req.body as Partial<Auth>;
+    if (!username || !password) {
+      throw new ClientError(401, 'invalid login');
+    }
+    const profileInfoSQL = `
+    select "userId", "hashedPassword"
+      from "users"
+      where "username" = $1;
+    `;
+    const profileInfoParams = [username];
+    const profileResp = await db.query(profileInfoSQL, profileInfoParams);
+    const [profile] = profileResp.rows;
+    if (!profile) throw new ClientError(401, 'invalid login');
+    const verification = await argon2.verify(profile.hashedPassword, password);
+    if (!verification) throw new ClientError(401, 'invalid login');
+    const userPayload = { userId: profile.userId, username };
+    const signedToken = jwt.sign(userPayload, hashKey);
+    res.json({ user: userPayload, token: signedToken });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.get('/api/entries', authMiddleware, async (req, res, next) => {
   try {
     const sql = `
     select *
@@ -27,7 +89,7 @@ app.get('/api/entries', async (req, res, next) => {
   }
 });
 
-app.get('/api/entries/:entryId', async (req, res, next) => {
+app.get('/api/entries/:entryId', authMiddleware, async (req, res, next) => {
   try {
     const { entryId } = req.params;
     if (!Number.isInteger(+entryId)) {
@@ -50,7 +112,7 @@ app.get('/api/entries/:entryId', async (req, res, next) => {
   }
 });
 
-app.post('/api/entries', async (req, res, next) => {
+app.post('/api/entries', authMiddleware, async (req, res, next) => {
   try {
     const { title, notes, photoUrl } = req.body;
     const sql = `
@@ -77,7 +139,7 @@ app.post('/api/entries', async (req, res, next) => {
   }
 });
 
-app.put(`/api/entries/:entryId`, async (req, res, next) => {
+app.put(`/api/entries/:entryId`, authMiddleware, async (req, res, next) => {
   try {
     const { entryId } = req.params;
     const { title, photoUrl, notes } = req.body;
@@ -111,7 +173,7 @@ app.put(`/api/entries/:entryId`, async (req, res, next) => {
   }
 });
 
-app.delete('/api/entries/:entryId', async (req, res, next) => {
+app.delete('/api/entries/:entryId', authMiddleware, async (req, res, next) => {
   try {
     const { entryId } = req.params;
     if (!Number.isInteger(+entryId)) {

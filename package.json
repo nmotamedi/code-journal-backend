@@ -39,5 +39,9 @@
     "stylelint": "^15.4.0",
     "stylelint-config-recommended": "^11.0.0",
     "stylelint-config-standard": "^32.0.0"
+  },
+  "dependencies": {
+    "argon2": "^0.40.1",
+    "jsonwebtoken": "^9.0.2"
   }
 }

@@ -5,6 +5,22 @@ export type Entry = {
   photoUrl: string;
 };
 
+export const tokenKey = 'um.token';
+
+export function saveToken(token: string | undefined): void {
+  if (token) {
+    sessionStorage.setItem(tokenKey, token);
+  } else {
+    sessionStorage.removeItem(tokenKey);
+  }
+}
+
+export function readToken(): string {
+  const token = sessionStorage.getItem(tokenKey);
+  if (!token) throw new Error('No token found');
+  return token;
+}
+
 export async function readEntries(): Promise<Entry[]> {
   const resp = await fetch(`/api/entries`);
   if (!resp.ok) throw new Error(`Fetch Error`);

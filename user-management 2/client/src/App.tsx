@@ -1,16 +1,12 @@
-import { Route, Routes } from 'react-router-dom';
-import { NavBar } from './components/NavBar';
-import { EntryForm } from './pages/EntryForm';
-import { EntryList } from './pages/EntryList';
-import { NotFound } from './pages/NotFound';
-import './App.css';
 import { useState } from 'react';
+import { Route, Routes } from 'react-router-dom';
+import { Home } from './pages/Home';
 import { AuthPage } from './pages/AuthPage';
-import { User } from './components/useUser';
-import { saveToken } from './data';
-import { UserProvider } from './components/UserContext';
+import { Header } from './components/Header';
+import { User, UserProvider } from './components/UserContext';
+import { saveToken } from './lib/data';
 
-export default function App() {
+export function App() {
   const [user, setUser] = useState<User>();
   const [token, setToken] = useState<string>();
 
@@ -31,10 +27,8 @@ export default function App() {
   return (
     <UserProvider value={contextValue}>
       <Routes>
-        <Route path="/" element={<NavBar />}>
-          <Route index element={<EntryList />} />
-          <Route path="details/:entryId" element={<EntryForm />} />
-          <Route path="*" element={<NotFound />} />
+        <Route path="/" element={<Header text="Todo App" />}>
+          <Route index element={<Home />} />
           <Route path="/sign-up" element={<AuthPage mode="sign-up" />} />
           <Route path="/sign-in" element={<AuthPage mode="sign-in" />} />
         </Route>
