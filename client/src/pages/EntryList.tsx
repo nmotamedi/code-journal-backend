@@ -33,16 +33,14 @@ export function EntryList() {
   }
 
   return (
-    <div className="container">
-      <div className="row">
-        <div className="column-full d-flex justify-between align-center">
-          <h1>Entries</h1>
-          <h3>
-            <Link to="/details/new" className="white-text form-link">
-              NEW
-            </Link>
-          </h3>
-        </div>
+    <>
+      <div className="column-full d-flex justify-between align-center">
+        <h1>Entries</h1>
+        <h3>
+          <Link to="/details/new" className="white-text form-link">
+            NEW
+          </Link>
+        </h3>
       </div>
       <div className="row">
         <div className="column-full">
@@ -53,36 +51,36 @@ export function EntryList() {
           </ul>
         </div>
       </div>
-    </div>
+    </>
   );
-}
 
-type EntryProps = {
-  entry: Entry;
-};
-function EntryCard({ entry }: EntryProps) {
-  return (
-    <li>
-      <div className="row">
-        <div className="column-half">
-          <img
-            className="input-b-radius form-image"
-            src={entry.photoUrl}
-            alt=""
-          />
-        </div>
-        <div className="column-half">
-          <div className="row">
-            <div className="column-full d-flex justify-between">
-              <h3>{entry.title}</h3>
-              <Link to={`details/${entry.entryId}`}>
-                <FaPencilAlt />
-              </Link>
-            </div>
+  type EntryProps = {
+    entry: Entry;
+  };
+  function EntryCard({ entry }: EntryProps) {
+    return (
+      <li>
+        <div className="row">
+          <div className="column-half">
+            <img
+              className="input-b-radius form-image"
+              src={entry.photoUrl}
+              alt=""
+            />
           </div>
-          <p>{entry.notes}</p>
+          <div className="column-half">
+            <div className="row">
+              <div className="column-full d-flex justify-between">
+                <h3>{entry.title}</h3>
+                <Link to={`details/${entry.entryId}`}>
+                  <FaPencilAlt />
+                </Link>
+              </div>
+            </div>
+            <p>{entry.notes}</p>
+          </div>
         </div>
-      </div>
-    </li>
-  );
+      </li>
+    );
+  }
 }
