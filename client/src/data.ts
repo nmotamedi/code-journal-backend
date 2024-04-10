@@ -5,66 +5,48 @@ export type Entry = {
   photoUrl: string;
 };
 
-type Data = {
-  entries: Entry[];
-  nextEntryId: number;
-};
-
-const dataKey = 'code-journal-data';
-
-function readData(): Data {
-  let data: Data;
-  const localData = localStorage.getItem(dataKey);
-  if (localData) {
-    data = JSON.parse(localData);
-  } else {
-    data = {
-      entries: [],
-      nextEntryId: 1,
-    };
-  }
-  return data;
-}
-
-function writeData(data: Data): void {
-  const dataJSON = JSON.stringify(data);
-  localStorage.setItem(dataKey, dataJSON);
-}
-
 export async function readEntries(): Promise<Entry[]> {
-  return readData().entries;
+  const resp = await fetch(`/api/entries`);
+  if (!resp.ok) throw new Error(`Fetch Error`);
+  const entriesList = await resp.json();
+  return entriesList;
 }
 
 export async function readEntry(entryId: number): Promise<Entry | undefined> {
-  return readData().entries.find((e) => e.entryId === entryId);
+  const resp = await fetch(`/api/entries/${entryId}`);
+  if (!resp.ok) throw new Error(`Fetch Error`);
+  const entry = await resp.json();
+  return entry;
 }
 
 export async function addEntry(entry: Entry): Promise<Entry> {
-  const data = readData();
-  const newEntry = {
-    ...entry,
-    entryId: data.nextEntryId++,
+  const options = {
+    method: 'POST',
+    body: JSON.stringify(entry),
+    headers: { 'Content-Type': 'application/json' },
   };
-  data.entries.unshift(newEntry);
-  writeData(data);
+  const resp = await fetch('/api/entries', options);
+  if (!resp.ok) throw new Error(`Fetch error with status ${resp.status}`);
+  const newEntry = await resp.json();
   return newEntry;
 }
 
 export async function updateEntry(entry: Entry): Promise<Entry> {
-  const data = readData();
-  const newEntries = data.entries.map((e) =>
-    e.entryId === entry.entryId ? entry : e
-  );
-  data.entries = newEntries;
-  writeData(data);
-  return entry;
+  const options = {
+    method: 'PUT',
+    body: JSON.stringify(entry),
+    headers: { 'Content-Type': 'application/json' },
+  };
+  const resp = await fetch(`/api/entries/${entry.entryId}`, options);
+  if (!resp.ok) throw new Error(`Fetch error with status ${resp.status}`);
+  const updatedEntry = await resp.json();
+  return updatedEntry;
 }
 
 export async function removeEntry(entryId: number): Promise<void> {
-  const data = readData();
-  const updatedArray = data.entries.filter(
-    (entry) => entry.entryId !== entryId
-  );
-  data.entries = updatedArray;
-  writeData(data);
+  const options = {
+    method: 'DELETE',
+  };
+  const resp = await fetch(`/api/entries/${entryId}`, options);
+  if (!resp.ok) throw new Error(`Fetch error with status ${resp.status}`);
 }
